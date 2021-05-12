@@ -41,8 +41,9 @@ mp.add_hook("on_load", 9, function()
   msg.verbose('yle-dl hook')
   local url = mp.get_property("stream-open-filename", "")
   if (url:find("https?://%a+%.yle%.fi/") == 1) or (url:find("https?://yle%.fi/") == 1) then
+    local start_time = os.clock()
     local command = { "yle-dl", "--showmetadata", url }
-    msg.verbose("Running: " .. table.concat(command, ' '))
+    msg.debug("Running: " .. table.concat(command, ' '))
     local ret = mp.command_native({name = "subprocess",
                                    args = command,
                                    capture_stdout = true,
@@ -60,6 +61,8 @@ mp.add_hook("on_load", 9, function()
       msg.error("failed to parse JSON: " .. err)
       return
     end
+    msg.verbose("yle-dl succeeded")
+    msg.debug("running yle-dl took " .. os.clock() - start_time .. " seconds")
 
     if #json == 1 then
       add_single_video(json[1])
