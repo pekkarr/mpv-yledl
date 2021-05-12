@@ -16,6 +16,27 @@
 local msg = require 'mp.msg'
 local utils = require 'mp.utils'
 
+local function add_series(data)
+  local playlist = { "#EXTM3U" }
+  for _, episode in pairs(data) do
+    table.insert(playlist, episode["webpage"])
+  end
+  mp.set_property("stream-open-filename", "memory://" .. table.concat(playlist, "\n"))
+end
+
+local function add_single_video(data)
+  local flavors = data["flavors"]
+  table.sort(flavors, function(a, b) return a["bitrate"] > b["bitrate"] end)
+  local best = flavors[1]
+  mp.set_property("stream-open-filename", best["url"])
+  mp.set_property("file-local-options/force-media-title", data["title"])
+  for _, sub in ipairs(data["subtitles"]) do
+    local lang = sub["language"]
+    msg.verbose("Adding subtitles for " .. lang)
+    mp.commandv("sub-add", sub["url"], "auto", sub["category"], lang)
+  end
+end
+
 mp.add_hook("on_load", 9, function()
   msg.verbose('yle-dl hook')
   local url = mp.get_property("stream-open-filename", "")
@@ -33,16 +54,17 @@ mp.add_hook("on_load", 9, function()
       msg.error("yle-dl failed to parse url")
       return
     end
-    local json = utils.parse_json(ret.stdout)[1]
-    local flavors = json["flavors"]
-    table.sort(flavors, function(a, b) return a["bitrate"] > b["bitrate"] end)
-    local best = flavors[1]
-    mp.set_property("stream-open-filename", best["url"])
-    mp.set_property("file-local-options/force-media-title", json["title"])
-    for _, sub in ipairs(json["subtitles"]) do
-      local lang = sub["language"]
-      msg.verbose("Adding subtitles for " .. lang)
-      mp.commandv("sub-add", sub["url"], "auto", sub["category"], lang)
+
+    local json, err = utils.parse_json(ret.stdout)
+    if (json == nil) then
+      msg.error("failed to parse JSON: " .. err)
+      return
+    end
+
+    if #json == 1 then
+      add_single_video(json[1])
+    else
+      add_series(json)
     end
   else
     msg.verbose('not an areena url')
