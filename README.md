@@ -13,6 +13,13 @@ Pass the YLE Areena web page URL to mpv. For example:
 
 `mpv https://areena.yle.fi/1-631348`
 
+## Features
+
+- Seek anywhere in the program
+- View subtitles
+- Supports all YLE media that is supported by yle-dl
+- If URL points to a series, all videos/audio in the series are played
+
 ## License
 
 Copyright 2021 Pekka Ristola
